@@ -98,4 +98,4 @@ electron/sounds/
 
 ## 作者
 
-sorateya
+sodateya
