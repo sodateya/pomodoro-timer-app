@@ -96,6 +96,12 @@ electron/sounds/
     └── end4.mp3
 ```
 
+## サンプル
+
+|サンプル|
+|--|
+|<video src="https://github.com/user-attachments/assets/9a18206d-3339-476e-8130-a2eb089fbbb7" width="300">|
+
 ## 作者
 
 sodateya
