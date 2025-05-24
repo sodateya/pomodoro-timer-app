@@ -1,6 +1,8 @@
 {
   "name": "pomodoro-timer-app",
   "version": "1.0.0",
+  "description": "シンプルで美しいポモドーロタイマー",
+  "author": "Your Name",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -13,7 +15,8 @@
     "build-electron": "next build",
     "dist": "npm run build-electron && electron-builder",
     "dist-mac": "npm run build-electron && electron-builder --mac",
-    "export": "next export"
+    "dist-win": "npm run build-electron && electron-builder --win",
+    "dist-all": "npm run build-electron && electron-builder --mac --win"
   },
   "dependencies": {
     "next": "14.2.3",
@@ -52,6 +55,29 @@
       "category": "public.app-category.productivity",
       "icon": "public/icon.png"
     },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pomodoro Timer"
+    },
     "dmg": {
       "title": "Pomodoro Timer",
       "contents": [
@@ -67,12 +93,12 @@
         }
       ]
     },
-   "extraResources": [
-    {
-      "from": "out/sounds",
-      "to": "sounds"
-    }
-  ],
-  "asarUnpack": ["**/*.mp3"]
+    "extraResources": [
+      {
+        "from": "public/sounds",
+        "to": "sounds"
+      }
+    ],
+    "asarUnpack": ["**/*.mp3"]
   }
 }
