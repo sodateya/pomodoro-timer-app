@@ -20,6 +20,8 @@ export const usePomodoro = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const volumeRef = useRef<number>(0.5);
+  const startTimeRef = useRef<number>(0);
+  const expectedTimeRef = useRef<number>(0);
 
   const workStartSounds = [
     '/sounds/workStart/start1.mp3',
@@ -101,10 +103,16 @@ export const usePomodoro = () => {
     if (state.isWorkSession && state.currentTime === state.workTime) {
       playRandomSound(workStartSounds);
     }
+    startTimeRef.current = Date.now();
+    expectedTimeRef.current = state.currentTime;
   }, [state.isWorkSession, state.currentTime, state.workTime, playRandomSound, workStartSounds]);
 
   const pause = useCallback(() => {
     setState(prev => ({ ...prev, isRunning: false }));
+    if (intervalRef.current) {
+      clearTimeout(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
   const reset = useCallback(() => {
@@ -114,6 +122,10 @@ export const usePomodoro = () => {
       currentTime: prev.isWorkSession ? prev.workTime : prev.breakTime,
       totalTime: prev.isWorkSession ? prev.workTime : prev.breakTime,
     }));
+    if (intervalRef.current) {
+      clearTimeout(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
   const switchSession = useCallback(() => {
@@ -136,29 +148,27 @@ export const usePomodoro = () => {
     switchSession();
   }, [pause, switchSession]);
 
-  useEffect(() => {
-    audioRef.current = new Audio();
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, []);
+  const updateTimer = useCallback(() => {
+    if (!state.isRunning) return;
 
-  useEffect(() => {
-    if (state.isRunning && state.currentTime > 0) {
-      intervalRef.current = setInterval(() => {
-        setState(prev => ({ ...prev, currentTime: prev.currentTime - 1 }));
-        // トレイの更新
-        if (window.electronAPI) {
-          window.electronAPI.updateTray({
-            isRunning: state.isRunning,
-            isWorkSession: state.isWorkSession,
-            currentTime: state.currentTime - 1
-          });
-        }
-      }, 1000);
-    } else if (state.currentTime === 0) {
+    const now = Date.now();
+    const elapsed = Math.floor((now - startTimeRef.current) / 1000);
+    const newTime = Math.max(0, expectedTimeRef.current - elapsed);
+
+    setState(prev => ({ ...prev, currentTime: newTime }));
+
+    // トレイの更新
+    if (window.electronAPI) {
+      window.electronAPI.updateTray({
+        isRunning: state.isRunning,
+        isWorkSession: state.isWorkSession,
+        currentTime: newTime
+      });
+    }
+
+    if (newTime > 0) {
+      intervalRef.current = setTimeout(updateTimer, 100);
+    } else {
       // セッション完了
       if (state.isWorkSession) {
         playRandomSound(workEndSounds);
@@ -173,13 +183,28 @@ export const usePomodoro = () => {
         start();
       }, 1000);
     }
+  }, [state.isRunning, state.isWorkSession, playRandomSound, switchSession, start, workEndSounds, workStartSounds]);
+
+  useEffect(() => {
+    if (state.isRunning) {
+      updateTimer();
+    }
 
     return () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        clearTimeout(intervalRef.current);
       }
     };
-  }, [state.isRunning, state.currentTime, state.isWorkSession, playRandomSound, switchSession, start, workEndSounds, workStartSounds]);
+  }, [state.isRunning, updateTimer]);
+
+  useEffect(() => {
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
