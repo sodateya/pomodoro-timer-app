@@ -129,7 +129,8 @@ ipcMain.handle('get-audio-path', async (event, type) => {
       'workEnd/end1.mp3',
       'workEnd/end2.mp3',
       'workEnd/end3.mp3',
-      'workEnd/end4.mp3'
+      'workEnd/end4.mp3',
+      'workEnd/end5.mp3'
     ]
   };
 
