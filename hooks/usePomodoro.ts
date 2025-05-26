@@ -36,6 +36,7 @@ export const usePomodoro = () => {
     '/sounds/workEnd/end2.mp3',
     '/sounds/workEnd/end3.mp3',
     '/sounds/workEnd/end4.mp3',
+    '/sounds/workEnd/end5.mp3',
   ];
 
   const setVolume = useCallback((volume: number) => {
