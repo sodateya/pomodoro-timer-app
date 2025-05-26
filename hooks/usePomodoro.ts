@@ -19,6 +19,7 @@ export const usePomodoro = () => {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const volumeRef = useRef<number>(0.5);
 
   const workStartSounds = [
     '/sounds/workStart/start1.mp3',
@@ -35,6 +36,13 @@ export const usePomodoro = () => {
     '/sounds/workEnd/end4.mp3',
   ];
 
+  const setVolume = useCallback((volume: number) => {
+    volumeRef.current = volume;
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, []);
+
   const playRandomSound = useCallback(async (sounds: string[]) => {
     const randomIndex = Math.floor(Math.random() * sounds.length);
     if (audioRef.current) {
@@ -46,6 +54,7 @@ export const usePomodoro = () => {
           console.log('Playing sound:', { type, audioPath });
           
           audioRef.current.src = audioPath;
+          audioRef.current.volume = volumeRef.current;
           await audioRef.current.play();
           console.log('Sound played successfully');
         } catch (error) {
@@ -55,6 +64,7 @@ export const usePomodoro = () => {
       } else {
         // 通常のWeb環境の場合
         audioRef.current.src = sounds[randomIndex];
+        audioRef.current.volume = volumeRef.current;
         audioRef.current.play().catch(error => {
           console.error('Audio playback failed:', error);
         });
@@ -69,6 +79,7 @@ export const usePomodoro = () => {
         try {
           const audioPath = await window.electronAPI.getAudioPath('breakComplete');
           audioRef.current.src = audioPath;
+          audioRef.current.volume = volumeRef.current;
           await audioRef.current.play();
         } catch (error) {
           console.error('Audio playback failed:', error);
@@ -77,6 +88,7 @@ export const usePomodoro = () => {
       } else {
         // 通常のWeb環境の場合
         audioRef.current.src = '/sounds/break-complete.mp3';
+        audioRef.current.volume = volumeRef.current;
         audioRef.current.play().catch(error => {
           console.error('Audio playback failed:', error);
         });
@@ -137,6 +149,14 @@ export const usePomodoro = () => {
     if (state.isRunning && state.currentTime > 0) {
       intervalRef.current = setInterval(() => {
         setState(prev => ({ ...prev, currentTime: prev.currentTime - 1 }));
+        // トレイの更新
+        if (window.electronAPI) {
+          window.electronAPI.updateTray({
+            isRunning: state.isRunning,
+            isWorkSession: state.isWorkSession,
+            currentTime: state.currentTime - 1
+          });
+        }
       }, 1000);
     } else if (state.currentTime === 0) {
       // セッション完了
@@ -179,5 +199,6 @@ export const usePomodoro = () => {
     skip,
     formatTime,
     getProgress,
+    setVolume,
   };
 };

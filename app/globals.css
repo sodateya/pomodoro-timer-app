@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --foreground: #000000;
+  --background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground: #ffffff;
+    --background: #000000;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  -webkit-app-region: drag;
+}
+
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}

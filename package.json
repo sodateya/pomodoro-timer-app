@@ -1,8 +1,8 @@
 {
-  "name": "pomodoro-timer-app",
+  "name": "pomodoro-timer",
   "version": "1.0.0",
-  "description": "シンプルで美しいポモドーロタイマー",
-  "author": "Your Name",
+  "description": "simple pomodoro timer",
+  "author": "Takuya Ishikawa",
   "private": true,
   "main": "electron/main.js",
   "scripts": {

@@ -1,9 +1,41 @@
-const { app, BrowserWindow, Notification, ipcMain } = require('electron');
+const { app, BrowserWindow, Notification, ipcMain, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
+let tray = null;
+
+function createTray() {
+  tray = new Tray(path.join(__dirname, '../public/tray-icon.png'));
+  const contextMenu = Menu.buildFromTemplate([
+    { label: '作業中 - 25:00', enabled: false },
+    { type: 'separator' },
+    { label: '表示', click: () => mainWindow.show() },
+    { label: '終了', click: () => app.quit() }
+  ]);
+  tray.setToolTip('Pomodoro Timer');
+  tray.setContextMenu(contextMenu);
+}
+
+function updateTrayMenu(isRunning, isWorkSession, currentTime) {
+  if (!tray) return;
+  
+  const minutes = Math.floor(currentTime / 60);
+  const seconds = currentTime % 60;
+  const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const status = isWorkSession ? '作業中' : '休憩中';
+  const runningStatus = isRunning ? '▶' : '⏸';
+  
+  const contextMenu = Menu.buildFromTemplate([
+    { label: `${status} ${runningStatus} ${timeString}`, enabled: false },
+    { type: 'separator' },
+    { label: '表示', click: () => mainWindow.show() },
+    { label: '終了', click: () => app.quit() }
+  ]);
+  
+  tray.setContextMenu(contextMenu);
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -14,8 +46,15 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#000000',
+      symbolColor: '#ffffff',
+      height: 40
+    },
     backgroundColor: '#667eea',
+    transparent: true,
+    alwaysOnTop: true,
     show: false
   });
 
@@ -33,9 +72,21 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // ウィンドウを閉じた時にアプリを終了せず、トレイに格納
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+    return false;
+  });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  createTray();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -47,6 +98,16 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// アプリケーションの終了処理
+app.on('before-quit', () => {
+  app.isQuitting = true;
+});
+
+// タイマー状態の更新をトレイに反映
+ipcMain.on('update-tray', (event, { isRunning, isWorkSession, currentTime }) => {
+  updateTrayMenu(isRunning, isWorkSession, currentTime);
 });
 
 // 通知用IPC
