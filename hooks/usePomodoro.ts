@@ -138,7 +138,6 @@ export const usePomodoro = () => {
         isWorkSession: newIsWorkSession,
         currentTime: newTime,
         totalTime: newTime,
-        completedSessions: prev.isWorkSession ? prev.completedSessions + 1 : prev.completedSessions,
       };
     });
   }, []);
@@ -169,21 +168,45 @@ export const usePomodoro = () => {
     if (newTime > 0) {
       intervalRef.current = setTimeout(updateTimer, 100);
     } else {
-      // セッション完了
+      // セッション完了時の処理
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      // 作業セッションが終了した場合のみ音を鳴らし、completedを増やす
       if (state.isWorkSession) {
         playRandomSound(workEndSounds);
+        setState(prev => ({
+          ...prev,
+          completedSessions: prev.completedSessions + 1
+        }));
       } else {
         playRandomSound(workStartSounds);
       }
       
-      switchSession();
-      
-      // 自動で次のセッションを開始
+      // セッション切り替え
+      setState(prev => {
+        const newIsWorkSession = !prev.isWorkSession;
+        const newTime = newIsWorkSession ? prev.workTime : prev.breakTime;
+        return {
+          ...prev,
+          isWorkSession: newIsWorkSession,
+          currentTime: newTime,
+          totalTime: newTime,
+          isRunning: false
+        };
+      });
+
+      // 少し待ってから次のセッションを開始
       setTimeout(() => {
-        start();
+        startTimeRef.current = Date.now();
+        expectedTimeRef.current = state.isWorkSession ? state.breakTime : state.workTime;
+        setState(prev => ({ ...prev, isRunning: true }));
+        updateTimer();
       }, 1000);
     }
-  }, [state.isRunning, state.isWorkSession, playRandomSound, switchSession, start, workEndSounds, workStartSounds]);
+  }, [state.isRunning, state.isWorkSession, state.workTime, state.breakTime, playRandomSound, workEndSounds, workStartSounds]);
 
   useEffect(() => {
     if (state.isRunning) {
